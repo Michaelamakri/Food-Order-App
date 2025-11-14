@@ -15,5 +15,3 @@ for r in restaurants:
         INSERT INTO restaurants (name, city, country)
         VALUES (?, ?, ?)
     """, r)
-
-print("Restaurants inserted successfully!")
