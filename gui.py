@@ -4,8 +4,10 @@ from database_manager import DatabaseManager
 class gui(tk.Frame):
     def __init__(self,root):
         self.root=root
+        self.cart=[]
         root.configure(bg="#74AF74")
-        root.geometry("400x500")
+        root.geometry("600x700")
+        root.resizable(True,True)
         self.db = DatabaseManager() 
         self.CreateMainScreen() 
 
@@ -56,7 +58,7 @@ class gui(tk.Frame):
                 ))
                 messagebox.showinfo("Success", "Account created successfully!")
                 signup_win.destroy()
-                self.clear_window()
+                
                 
             except Exception as e:
                 messagebox.showerror("Database Error ","{e}")
@@ -67,6 +69,7 @@ class gui(tk.Frame):
         login_win = tk.Toplevel(self.root)
         login_win.title("Log In")
         login_win.geometry("400x500")
+        login_win.configure(bg="#74AF74")
         tk.Label(login_win, text="Email:").pack()
         email_entry = tk.Entry(login_win)
         email_entry.pack()
@@ -85,10 +88,11 @@ class gui(tk.Frame):
                 )
             if user:
                 name = user[0][1]
+                city = user[0][7] 
                 messagebox.showinfo("Welcome", f"Welcome back, {name}!")
                 login_win.destroy()
                 self.clear_window()
-                self.show_restaurants_screen(name)
+                self.show_restaurants_screen(name,city)
             else:
                 messagebox.showerror("Error", "Invalid email or password")
                 
@@ -96,23 +100,45 @@ class gui(tk.Frame):
         login_win.bind("<Return>", login_action)
         email_entry.focus_set()
     
-    def show_restaurants_screen(self, username):
+    def show_restaurants_screen(self, username,usercity):
         tk.Label(self.root,text=f"Welcome, {username}!",font=("Arial",14),bg="#74AF74").pack(pady=10)
         tk.Label(self.root,text="Available restaurants:",font=("Arial",14),bg="#74AF74").pack(pady=10)
-        restaurants =self.db.fetchall("SELECT name FROM restaurants")
+        restaurants =self.db.fetchall(
+            "SELECT name FROM restaurants WHERE city=?",
+            (usercity,)
+            )
         if restaurants==[]:
             tk.Label(self.root,text="No restaurants",bg="#74AF74").pack(pady=10)
         else:
             for rest in restaurants:
-                tk.Button(self.root,text=rest[0],bg="#74AF74",width=25,height=2).pack(pady=10)
+                tk.Button(self.root,text=rest[0],bg="#74AF74",width=25,height=2,command=lambda r=rest[0]: self.open_menu(r)).pack(pady=10)
+    def add_to_cart(self, name, price):
+        self.cart.append((name, price))
+        messagebox.showinfo("Cart", f"Added {name} to cart!")
+    def open_menu(self, restaurant_name):
+        self.clear_window()
+        tk.Label(self.root,text=f"Menu of {restaurant_name}",font=("Arial", 22, "bold"),bg="#74AF74").pack(pady=10)
+
+        menu_items = self.db.fetchall("""
+            SELECT item_name, price 
+            FROM menu 
+            WHERE rest_id = (SELECT rest_id FROM restaurants WHERE name=?)
+        """, (restaurant_name,))
+
+        if menu_items==[]:
+            tk.Label(self.root, text="No items found.", bg="#74AF74").pack(pady=10)
+            return
+        for item_name, price in menu_items:
+            frame = tk.Frame(self.root, bg="#74AF74")
+            frame.pack(pady=5)
+            tk.Label(frame, text=f"{item_name} price:{price}€", bg="#74AF74").pack(side="left", padx=10)
+            tk.Button(frame, text="Add to Cart",command=lambda n=item_name, p=price: self.add_to_cart(n, p)).pack(side="right")
 
 
-   
-    
 
     
     
     
-    
+
 
 
